@@ -1,12 +1,14 @@
 class JogoBozo {
   constructor() {
-    this.jogadores = [{ nome: 'Jogador 1', placar: this.criarPlacarVazio() }];
+    this.jogadores = [
+      { nome: 'Jogador 1', placar: this.criarPlacarVazio(), cor: '#3498db' },
+      { nome: 'Jogador 2', placar: this.criarPlacarVazio(), cor: '#e74c3c' },
+    ];
     this.jogadorAtual = 0;
     this.jogadaAtual = 0;
     this.dados = [0, 0, 0, 0, 0];
     this.dadosSelecionados = [false, false, false, false, false];
     this.jogoFinalizado = false;
-    this.inicializarFooter();
 
     this.categorias = {
       superior: [
@@ -68,13 +70,13 @@ class JogoBozo {
         },
         {
           id: 'seqbaixa',
-          nome: 'Seguida baixa',
+          nome: 'Seguida Baixa',
           pontos: null,
           calcular: (d) => this.calcularSequenciaBaixa(d),
         },
         {
           id: 'seqalta',
-          nome: 'Seguida alta',
+          nome: 'Seguida Alta',
           pontos: null,
           calcular: (d) => this.calcularSequenciaAlta(d),
         },
@@ -94,6 +96,7 @@ class JogoBozo {
     };
 
     this.inicializarEventos();
+    this.inicializarFooter();
     this.atualizarInterface();
     this.renderizarPlacar();
   }
@@ -123,7 +126,6 @@ class JogoBozo {
   }
 
   inicializarFooter() {
-    // Atualiza o ano atual no footer
     const yearElement = document.getElementById('current-year');
     if (yearElement) {
       yearElement.textContent = new Date().getFullYear();
@@ -181,15 +183,31 @@ class JogoBozo {
     const pontos = categoria.calcular(this.dados);
     const isSuperior = index < 6;
 
+    // Se for General na 1ª jogada, o jogo já foi finalizado
+    if (
+      this.jogoFinalizado &&
+      categoria.id === 'bozo' &&
+      this.jogadaAtual === 1
+    ) {
+      return;
+    }
+
     if (isSuperior) {
       this.jogadores[this.jogadorAtual].placar.superior[index] = pontos;
     } else {
       this.jogadores[this.jogadorAtual].placar.inferior[index - 6] = pontos;
     }
 
+    // Mostrar mensagem especial para combinações
+    this.mostrarMensagemEspecial(categoria.id, pontos);
+
     this.calcularBonus();
     this.calcularTotal();
-    this.proximaRodada();
+
+    // Só passa para a próxima rodada se o jogo não foi finalizado por General
+    if (!this.jogoFinalizado) {
+      this.proximaRodada();
+    }
   }
 
   calcularBonus() {
@@ -212,6 +230,8 @@ class JogoBozo {
   }
 
   proximaRodada() {
+    // Alterna para o próximo jogador
+    this.jogadorAtual = (this.jogadorAtual + 1) % this.jogadores.length;
     this.jogadaAtual = 0;
     this.dados = [0, 0, 0, 0, 0];
     this.dadosSelecionados = [false, false, false, false, false];
@@ -230,12 +250,15 @@ class JogoBozo {
   }
 
   verificarFimDoJogo() {
-    const placar = this.jogadores[this.jogadorAtual].placar;
-    const todosPreenchidos =
-      placar.superior.every((p) => p !== null) &&
-      placar.inferior.every((p) => p !== null);
+    const todosJogadoresFinalizados = this.jogadores.every((jogador) => {
+      const placar = jogador.placar;
+      return (
+        placar.superior.every((p) => p !== null) &&
+        placar.inferior.every((p) => p !== null)
+      );
+    });
 
-    if (todosPreenchidos) {
+    if (todosJogadoresFinalizados) {
       this.finalizarJogo();
     }
   }
@@ -245,28 +268,85 @@ class JogoBozo {
     const modal = document.getElementById('modalVitoria');
     const mensagem = document.getElementById('mensagemVitoria');
 
-    mensagem.textContent = `Parabéns! Você fez ${
-      this.jogadores[this.jogadorAtual].placar.total
-    } pontos!`;
+    // Encontra o vencedor
+    const vencedor = this.jogadores.reduce((prev, current) =>
+      prev.placar.total > current.placar.total ? prev : current
+    );
+
+    mensagem.textContent = `🎉 ${vencedor.nome} venceu com ${vencedor.placar.total} pontos!`;
     modal.style.display = 'block';
+
+    // Desabilita todos os botões
+    document.getElementById('btnRolar').disabled = true;
+    document.getElementById('btnFinalizar').disabled = true;
+  }
+
+  // NOVA FUNÇÃO: Finalizar jogo com vitória imediata por General na 1ª jogada
+  finalizarJogoComVitoriaImediata() {
+    this.jogoFinalizado = true;
+    const modal = document.getElementById('modalVitoria');
+    const mensagem = document.getElementById('mensagemVitoria');
+
+    const jogador = this.jogadores[this.jogadorAtual];
+    mensagem.textContent = `🎉 ${jogador.nome} venceu imediatamente com um General na primeira jogada! 🏆`;
+    modal.style.display = 'block';
+
+    // Desabilita todos os botões
+    document.getElementById('btnRolar').disabled = true;
+    document.getElementById('btnFinalizar').disabled = true;
+  }
+
+  // NOVA FUNÇÃO: Mostrar mensagens especiais para combinações
+  mostrarMensagemEspecial(categoriaId, pontos) {
+    const mensagensEspeciais = {
+      fullhouse: `Full House! ${pontos} pontos${
+        this.jogadaAtual === 1 ? ' (1ª jogada!)' : ''
+      }`,
+      seqbaixa: `Sequência Baixa! ${pontos} pontos${
+        this.jogadaAtual === 1 ? ' (1ª jogada!)' : ''
+      }`,
+      seqalta: `Sequência Alta! ${pontos} pontos${
+        this.jogadaAtual === 1 ? ' (1ª jogada!)' : ''
+      }`,
+      quadra: `Quadrada! ${pontos} pontos${
+        this.jogadaAtual === 1 ? ' (1ª jogada!)' : ''
+      }`,
+      bozo:
+        this.jogadaAtual === 1
+          ? '🎉 GENERAL NA PRIMEIRA JOGADA! VITÓRIA IMEDIATA! 🏆'
+          : `General! ${pontos} pontos`,
+    };
+
+    if (mensagensEspeciais[categoriaId]) {
+      const tipo =
+        this.jogadaAtual === 1 && categoriaId === 'bozo' ? 'erro' : 'sucesso';
+      this.mostrarMensagem(mensagensEspeciais[categoriaId], tipo);
+    }
   }
 
   novoJogo() {
-    this.jogadores[this.jogadorAtual] = {
-      nome: 'Jogador 1',
-      placar: this.criarPlacarVazio(),
-    };
+    this.jogadores = [
+      { nome: 'Jogador 1', placar: this.criarPlacarVazio(), cor: '#3498db' },
+      { nome: 'Jogador 2', placar: this.criarPlacarVazio(), cor: '#e74c3c' },
+    ];
+    this.jogadorAtual = 0;
     this.jogadaAtual = 0;
     this.dados = [0, 0, 0, 0, 0];
     this.dadosSelecionados = [false, false, false, false, false];
     this.jogoFinalizado = false;
 
     document.getElementById('modalVitoria').style.display = 'none';
+
+    // Reabilita os botões
+    document.getElementById('btnRolar').disabled = false;
+    document.getElementById('btnFinalizar').disabled = true;
+
     this.renderizarPlacar();
     this.atualizarInterface();
+    this.mostrarMensagem('Novo jogo iniciado! Vez do Jogador 1.', 'sucesso');
   }
 
-  // Funções de cálculo das combinações
+  // FUNÇÕES DE CÁLCULO ATUALIZADAS COM NOVAS REGRAS
   somarNumeros(dados, numero) {
     return dados.filter((d) => d === numero).reduce((acc, val) => acc + val, 0);
   }
@@ -282,40 +362,65 @@ class JogoBozo {
       : 0;
   }
 
+  // ATUALIZADO: Quadrada - 35 pontos na 1ª jogada, 30 pontos nas demais
   calcularQuadra(dados) {
     const contagem = this.contarValores(dados);
-    return Object.values(contagem).some((c) => c >= 4)
-      ? this.somarTodos(dados)
-      : 0;
+    const temQuadra = Object.values(contagem).some((c) => c >= 4);
+
+    if (!temQuadra) return 0;
+
+    return this.jogadaAtual === 1 ? 35 : 30;
   }
 
+  // ATUALIZADO: Full House - 15 pontos na 1ª jogada, 10 pontos nas demais
   calcularFullHouse(dados) {
     const contagem = Object.values(this.contarValores(dados));
-    return contagem.includes(3) && contagem.includes(2) ? 25 : 0;
+    const temFullHouse = contagem.includes(3) && contagem.includes(2);
+
+    if (!temFullHouse) return 0;
+
+    return this.jogadaAtual === 1 ? 15 : 10;
   }
 
+  // ATUALIZADO: Sequência Baixa - 25 pontos na 1ª jogada, 20 pontos nas demais
   calcularSequenciaBaixa(dados) {
     const unique = [...new Set(dados)].sort();
     const sequencias = ['1234', '2345', '3456'];
-    return sequencias.some((seq) =>
+    const ehSequenciaBaixa = sequencias.some((seq) =>
       seq.split('').every((n) => unique.includes(parseInt(n)))
-    )
-      ? 30
-      : 0;
+    );
+
+    if (!ehSequenciaBaixa) return 0;
+
+    return this.jogadaAtual === 1 ? 25 : 20;
   }
 
+  // ATUALIZADO: Sequência Alta - 25 pontos na 1ª jogada, 20 pontos nas demais
   calcularSequenciaAlta(dados) {
     const unique = [...new Set(dados)].sort();
     const seq1 = [1, 2, 3, 4, 5];
     const seq2 = [2, 3, 4, 5, 6];
-    return seq1.every((n) => unique.includes(n)) ||
-      seq2.every((n) => unique.includes(n))
-      ? 40
-      : 0;
+    const ehSequenciaAlta =
+      seq1.every((n) => unique.includes(n)) ||
+      seq2.every((n) => unique.includes(n));
+
+    if (!ehSequenciaAlta) return 0;
+
+    return this.jogadaAtual === 1 ? 25 : 20;
   }
 
+  // ATUALIZADO: General - Vitória imediata na 1ª jogada, 40 pontos nas demais
   calcularBozo(dados) {
-    return new Set(dados).size === 1 ? 50 : 0;
+    const temGeneral = new Set(dados).size === 1;
+
+    if (!temGeneral) return 0;
+
+    if (this.jogadaAtual === 1) {
+      this.finalizarJogoComVitoriaImediata();
+      return 0; // Não pontua, apenas finaliza o jogo
+    } else {
+      return 40;
+    }
   }
 
   contarValores(dados) {
@@ -326,16 +431,56 @@ class JogoBozo {
     return contagem;
   }
 
-  // Interface
+  // NOVA FUNÇÃO: Criar dado visual com bolinhas
+  criarDadoVisual(valor, index) {
+    const dado = document.createElement('div');
+    dado.className = `dado ${
+      this.dadosSelecionados[index] ? 'selecionado' : ''
+    }`;
+    dado.setAttribute('data-value', valor);
+
+    // Cria as bolinhas baseadas no valor do dado
+    for (let i = 1; i <= 9; i++) {
+      const pip = document.createElement('div');
+      pip.className = 'pip';
+
+      // Define quais posições terão bolinhas baseado no valor
+      const posicoesComPip = {
+        1: [5],
+        2: [1, 9],
+        3: [1, 5, 9],
+        4: [1, 3, 7, 9],
+        5: [1, 3, 5, 7, 9],
+        6: [1, 3, 4, 6, 7, 9],
+      };
+
+      if (posicoesComPip[valor].includes(i)) {
+        pip.classList.add('preenchido');
+      } else {
+        pip.classList.add('vazio');
+      }
+
+      dado.appendChild(pip);
+    }
+
+    dado.onclick = () => this.toggleDado(index);
+    return dado;
+  }
+
+  // INTERFACE ATUALIZADA
   atualizarInterface() {
     this.renderizarDados();
+
+    const jogador = this.jogadores[this.jogadorAtual];
+    document.getElementById('jogadorAtual').textContent = `${jogador.nome}`;
+    document.getElementById('jogadorAtual').style.color = jogador.cor;
 
     document.getElementById(
       'jogadaAtual'
     ).textContent = `Jogada: ${this.jogadaAtual}/3`;
-    document.getElementById('pontuacaoTotal').textContent = `Pontos: ${
-      this.jogadores[this.jogadorAtual].placar.total
-    }`;
+    document.getElementById(
+      'pontuacaoTotal'
+    ).textContent = `Pontos: ${jogador.placar.total}`;
 
     const btnRolar = document.getElementById('btnRolar');
     const btnFinalizar = document.getElementById('btnFinalizar');
@@ -344,7 +489,10 @@ class JogoBozo {
     btnFinalizar.disabled = this.jogadaAtual === 0 || this.jogoFinalizado;
 
     if (this.jogadaAtual === 0) {
-      this.mostrarMensagem('Clique em "Rolar Dados" para começar!', 'sucesso');
+      this.mostrarMensagem(
+        `Vez de ${jogador.nome}! Clique em "Rolar Dados" para começar.`,
+        'sucesso'
+      );
     }
   }
 
@@ -353,13 +501,16 @@ class JogoBozo {
     container.innerHTML = '';
 
     this.dados.forEach((valor, index) => {
-      const dado = document.createElement('div');
-      dado.className = `dado ${
-        this.dadosSelecionados[index] ? 'selecionado' : ''
-      }`;
-      dado.textContent = valor > 0 ? valor : '?';
-      dado.onclick = () => this.toggleDado(index);
-      container.appendChild(dado);
+      if (valor > 0) {
+        const dado = this.criarDadoVisual(valor, index);
+        container.appendChild(dado);
+      } else {
+        // Dado não rolado ainda
+        const dado = document.createElement('div');
+        dado.className = 'dado';
+        dado.textContent = '?';
+        container.appendChild(dado);
+      }
     });
   }
 
