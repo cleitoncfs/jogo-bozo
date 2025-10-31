@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bozó Profissional</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🎲 Bozó Profissional</h1>
+        <div class="game-info">
+          <div id="jogadorAtual">Jogador: 1</div>
+          <div id="jogadaAtual">Jogada: 1/3</div>
+          <div id="pontuacaoTotal">Pontos: 0</div>
+        </div>
+      </header>
+
+      <main>
+        <section class="dados-section">
+          <div class="dados-container" id="dados"></div>
+          <div class="controles">
+            <button id="btnRolar" class="btn-primary">Rolar Dados</button>
+            <button id="btnFinalizar" class="btn-secondary" disabled>
+              Finalizar Jogada
+            </button>
+            <button id="btnNovoJogo" class="btn-tertiary">Novo Jogo</button>
+          </div>
+          <div id="mensagem" class="mensagem"></div>
+        </section>
+
+        <section class="placar-section">
+          <h2>Placar</h2>
+          <div class="placar-container">
+            <div class="categorias">
+              <h3>Parte Superior</h3>
+              <div id="categoriasSuperior" class="categoria-lista"></div>
+
+              <div class="bonus">
+                <span>Bônus (63+):</span>
+                <span id="bonus">0</span>
+              </div>
+
+              <h3>Parte Inferior</h3>
+              <div id="categoriasInferior" class="categoria-lista"></div>
+            </div>
+
+            <div class="total">
+              <strong>Total: <span id="totalPontos">0</span></strong>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <div id="modalVitoria" class="modal">
+        <div class="modal-content">
+          <h2>🎉 Fim de Jogo!</h2>
+          <p id="mensagemVitoria"></p>
+          <button id="btnReiniciar" class="btn-primary">Jogar Novamente</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/scripts.js"></script>
+  </body>
+</html>
