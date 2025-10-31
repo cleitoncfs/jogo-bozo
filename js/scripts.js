@@ -6,6 +6,7 @@ class JogoBozo {
     this.dados = [0, 0, 0, 0, 0];
     this.dadosSelecionados = [false, false, false, false, false];
     this.jogoFinalizado = false;
+    this.inicializarFooter();
 
     this.categorias = {
       superior: [
@@ -119,6 +120,14 @@ class JogoBozo {
     document
       .getElementById('btnReiniciar')
       .addEventListener('click', () => this.novoJogo());
+  }
+
+  inicializarFooter() {
+    // Atualiza o ano atual no footer
+    const yearElement = document.getElementById('current-year');
+    if (yearElement) {
+      yearElement.textContent = new Date().getFullYear();
+    }
   }
 
   rolarDados() {
